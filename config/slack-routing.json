@@ -1,0 +1,30 @@
+{
+  "description": "Route Slack notifications to specific channels based on URL tags. Rules are evaluated top-down; the first match wins. If no rule matches, the default channel is used.",
+  "defaultChannel": "#evv-alerts",
+  "rules": [
+    {
+      "match": { "tag": "state", "value": "TX" },
+      "channel": "#evv-texas"
+    },
+    {
+      "match": { "tag": "state", "value": "OH" },
+      "channel": "#evv-ohio"
+    },
+    {
+      "match": { "tag": "state", "value": "FL" },
+      "channel": "#evv-florida"
+    },
+    {
+      "match": { "tag": "state", "value": "NY" },
+      "channel": "#evv-newyork"
+    },
+    {
+      "match": { "tag": "source", "value": "discovered" },
+      "channel": "#evv-discovery"
+    },
+    {
+      "match": { "tag": "url_type", "value": "aggregator" },
+      "channel": "#evv-aggregators"
+    }
+  ]
+}

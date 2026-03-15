@@ -1,0 +1,14 @@
+{
+  "queries": [
+    "\"EVV export\" aggregator",
+    "\"Electronic Visit Verification\" state portal filetype:pdf OR site:gov",
+    "\"CURES Act\" EVV data submission",
+    "EVV aggregator integration guide",
+    "\"Electronic Visit Verification\" Medicaid compliance portal",
+    "EVV data exchange specification site:gov",
+    "\"21st Century Cures Act\" EVV implementation guide",
+    "home health EVV aggregator onboarding",
+    "state Medicaid EVV vendor portal",
+    "EVV alternate system certification"
+  ]
+}

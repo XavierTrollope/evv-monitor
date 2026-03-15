@@ -1,0 +1,15 @@
+import pino from "pino";
+
+export const logger = pino({
+  transport:
+    process.env.NODE_ENV !== "production"
+      ? { target: "pino/file", options: { destination: 1 } }
+      : undefined,
+  level: process.env.LOG_LEVEL ?? "info",
+  formatters: {
+    level(label) {
+      return { level: label };
+    },
+  },
+  timestamp: pino.stdTimeFunctions.isoTime,
+});

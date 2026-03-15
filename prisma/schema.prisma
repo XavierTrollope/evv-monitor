@@ -1,0 +1,71 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model WatchedUrl {
+  id               Int       @id @default(autoincrement())
+  url              String    @unique
+  source           String    @default("manual") // manual | discovered
+  status           String    @default("active") // active | paused | pending_review | error_paused
+  intervalMinutes  Int       @default(60)
+  tags             String    @default("{}") // JSON: { state?, aggregator_name?, url_type? }
+  consecutiveFailures Int    @default(0)
+  lastCheckedAt    DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  snapshots    Snapshot[]
+  changeEvents ChangeEvent[]
+
+  @@map("watched_urls")
+}
+
+model Snapshot {
+  id             Int      @id @default(autoincrement())
+  urlId          Int
+  htmlCompressed Bytes?   // gzip-compressed full HTML
+  textContent    String?  // extracted readable text
+  contentHash    String   // sha256 of textContent
+  fetchedAt      DateTime @default(now())
+
+  watchedUrl         WatchedUrl  @relation(fields: [urlId], references: [id], onDelete: Cascade)
+  oldChangeEvents    ChangeEvent[] @relation("OldSnapshot")
+  newChangeEvents    ChangeEvent[] @relation("NewSnapshot")
+
+  @@index([urlId, fetchedAt])
+  @@map("snapshots")
+}
+
+model ChangeEvent {
+  id            Int       @id @default(autoincrement())
+  urlId         Int
+  oldSnapshotId Int
+  newSnapshotId Int
+  changeScore   Float     // percentage of lines changed
+  diffPreview   String    // truncated diff (first 20 changed lines)
+  summary       String    // human-readable summary
+  notifiedAt    DateTime?
+  createdAt     DateTime  @default(now())
+
+  watchedUrl  WatchedUrl @relation(fields: [urlId], references: [id], onDelete: Cascade)
+  oldSnapshot Snapshot   @relation("OldSnapshot", fields: [oldSnapshotId], references: [id])
+  newSnapshot Snapshot   @relation("NewSnapshot", fields: [newSnapshotId], references: [id])
+
+  @@index([urlId, createdAt])
+  @@map("change_events")
+}
+
+model DiscoveryRun {
+  id           Int      @id @default(autoincrement())
+  query        String
+  resultsFound Int
+  newUrlsCount Int
+  ranAt        DateTime @default(now())
+
+  @@map("discovery_runs")
+}

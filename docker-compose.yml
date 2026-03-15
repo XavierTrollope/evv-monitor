@@ -1,0 +1,40 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: evv
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-evv_monitor_secret}
+      POSTGRES_DB: evv_monitor
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U evv -d evv_monitor"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  app:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "${PORT:-3000}:3000"
+    environment:
+      DATABASE_URL: postgresql://evv:${POSTGRES_PASSWORD:-evv_monitor_secret}@db:5432/evv_monitor
+      SLACK_WEBHOOK_URL: ${SLACK_WEBHOOK_URL:-}
+      SEARCH_API_KEY: ${SEARCH_API_KEY:-}
+      SEARCH_ENGINE_ID: ${SEARCH_ENGINE_ID:-}
+      DISCOVERY_CRON: ${DISCOVERY_CRON:-0 8 * * *}
+      DEFAULT_POLL_INTERVAL_MIN: ${DEFAULT_POLL_INTERVAL_MIN:-60}
+      CHANGE_THRESHOLD_PCT: ${CHANGE_THRESHOLD_PCT:-5}
+      PLAYWRIGHT_TIMEOUT_MS: ${PLAYWRIGHT_TIMEOUT_MS:-15000}
+      PORT: "3000"
+      DIFF_VIEWER_BASE_URL: ${DIFF_VIEWER_BASE_URL:-}
+
+volumes:
+  pgdata:

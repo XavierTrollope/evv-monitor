@@ -1,0 +1,37 @@
+{
+  "description": "Regex patterns for content that should be ignored during diff comparison. Lines matching any pattern are stripped before diffing.",
+  "patterns": [
+    {
+      "name": "timestamps_footer",
+      "regex": "(?:Last (?:updated|modified|reviewed)|Page generated|Copyright ©?)\\s*:?\\s*\\d{1,2}[/-]\\d{1,2}[/-]\\d{2,4}",
+      "description": "Footer timestamps like 'Last updated: 03/14/2026'"
+    },
+    {
+      "name": "iso_timestamps",
+      "regex": "\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}",
+      "description": "ISO 8601 timestamps embedded in page content"
+    },
+    {
+      "name": "whitespace_only",
+      "regex": "^\\s*$",
+      "description": "Blank or whitespace-only lines"
+    },
+    {
+      "name": "ad_slots",
+      "regex": "(?:ad-slot|advertisement|sponsored|googletag|doubleclick|adsense)",
+      "flags": "i",
+      "description": "Common ad-related content identifiers"
+    },
+    {
+      "name": "tracking_params",
+      "regex": "(?:utm_source|utm_medium|utm_campaign|fbclid|gclid)=",
+      "description": "URL tracking parameters that may appear in page text"
+    },
+    {
+      "name": "session_tokens",
+      "regex": "(?:jsessionid|csrf[_-]?token|nonce)=[a-zA-Z0-9]+",
+      "flags": "i",
+      "description": "Session identifiers and CSRF tokens"
+    }
+  ]
+}
