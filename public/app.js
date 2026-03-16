@@ -463,6 +463,28 @@ function renderDiscovery(runs) {
       .join("")}</tbody></table>`;
 }
 
+// ---- Trigger Discovery ----
+async function triggerDiscovery() {
+  const btn = $("#btnRunDiscovery");
+  btn.disabled = true;
+  btn.textContent = "Running…";
+  try {
+    const resp = await fetch(`${API}/discovery-runs/trigger`, { method: "POST" });
+    const data = await resp.json();
+    if (resp.ok) {
+      toast("Discovery cycle triggered — results will appear shortly");
+      setTimeout(loadDiscovery, 8000);
+    } else {
+      toast(data.error || "Failed to trigger discovery", "error");
+    }
+  } catch (err) {
+    toast("Network error: " + err.message, "error");
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "Run Discovery Now";
+  }
+}
+
 // ---- Add URL Modal ----
 function openModal() {
   $("#modalBackdrop").hidden = false;

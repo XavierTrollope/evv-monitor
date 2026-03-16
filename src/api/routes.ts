@@ -2,6 +2,7 @@ import { Router, type Request, type Response } from "express";
 import { z } from "zod";
 import { prisma } from "../lib/db";
 import { computeDiff } from "../changes/detector";
+import { runDiscoveryCycle } from "../discovery/engine";
 
 function parseId(raw: unknown): number | null {
   const n = parseInt(String(raw), 10);
@@ -61,6 +62,29 @@ router.get("/discovery-runs", async (req: Request, res: Response) => {
     res.json(runs);
   } catch (err) {
     res.status(500).json({ error: "Failed to fetch discovery runs", detail: String(err) });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// POST /discovery-runs/trigger — run discovery cycle on demand
+// ---------------------------------------------------------------------------
+let discoveryRunning = false;
+
+router.post("/discovery-runs/trigger", async (_req: Request, res: Response) => {
+  if (discoveryRunning) {
+    res.status(409).json({ error: "Discovery cycle already in progress" });
+    return;
+  }
+
+  discoveryRunning = true;
+  res.json({ status: "started", message: "Discovery cycle triggered" });
+
+  try {
+    await runDiscoveryCycle();
+  } catch (err) {
+    // logged inside runDiscoveryCycle
+  } finally {
+    discoveryRunning = false;
   }
 });
 
