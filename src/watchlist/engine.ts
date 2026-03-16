@@ -13,6 +13,11 @@ export async function runWatchlistCycle(): Promise<void> {
   const start = Date.now();
   logger.info("Watchlist cycle starting");
 
+  const reactivated = await autoReactivateUrls();
+  if (reactivated > 0) {
+    logger.info({ reactivated }, "Auto-reactivated stalled URLs");
+  }
+
   const urls = await prisma.watchedUrl.findMany({
     where: { status: "active" },
   });
@@ -40,6 +45,36 @@ export async function runWatchlistCycle(): Promise<void> {
     { checked, changed, failed, durationMs: duration },
     "Watchlist cycle complete"
   );
+}
+
+async function autoReactivateUrls(): Promise<number> {
+  const stalled = await prisma.watchedUrl.findMany({
+    where: {
+      status: { in: ["pending_review", "error_paused", "paused"] },
+    },
+  });
+
+  if (stalled.length === 0) return 0;
+
+  for (const entry of stalled) {
+    const isPdf = entry.url.toLowerCase().endsWith(".pdf");
+    if (isPdf) continue;
+
+    await prisma.watchedUrl.update({
+      where: { id: entry.id },
+      data: {
+        status: "active",
+        consecutiveFailures: 0,
+      },
+    });
+
+    logger.info(
+      { urlId: entry.id, url: entry.url, previousStatus: entry.status },
+      "Auto-reactivated URL"
+    );
+  }
+
+  return stalled.filter((e) => !e.url.toLowerCase().endsWith(".pdf")).length;
 }
 
 function isPollingDue(
@@ -111,9 +146,16 @@ async function processUrl(
     return "unchanged";
   }
 
+  const ignoreRules = await prisma.ignoreRule.findMany({
+    where: { urlId: entry.id },
+    select: { pattern: true },
+  });
+  const ignorePatterns = ignoreRules.map((r) => r.pattern);
+
   const diff = computeDiff(
     previousSnapshot.textContent ?? "",
-    result.textContent
+    result.textContent,
+    ignorePatterns
   );
 
   if (diff.changeScore < env.CHANGE_THRESHOLD_PCT) {

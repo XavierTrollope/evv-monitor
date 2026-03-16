@@ -3,6 +3,5 @@ dist/
 .env
 *.db
 *.db-journal
-prisma/migrations/
 agent-transcripts/
 agent-tools/

@@ -136,6 +136,7 @@
       <div id="diffContent" class="diff-content">
         <p class="empty-state">Select a change event to view its diff.</p>
       </div>
+      <div id="diffIgnoreRules"></div>
     </section>
 
     <!-- ======================== DISCOVERY ======================== -->
@@ -194,6 +195,26 @@
           <button type="submit" class="btn btn-primary">Add URL</button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- ======================== IGNORE RULES MODAL ======================== -->
+  <div class="modal-backdrop" id="ignoreModal" hidden>
+    <div class="modal">
+      <div class="modal-header">
+        <h2>Ignore Changes in Future</h2>
+        <button class="btn btn-ghost modal-close" id="ignoreModalClose">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="color:var(--text-muted); font-size:13px; margin-bottom:8px;">
+          Select which types of changes to stop tracking. These patterns will match any future value changes of the same type (e.g. changing IDs, dates).
+        </p>
+        <div id="ignorePatternList" class="ignore-pattern-list"></div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" id="ignoreModalCancel">Cancel</button>
+          <button type="button" class="btn btn-primary" id="ignoreModalConfirm">Ignore Selected</button>
+        </div>
+      </div>
     </div>
   </div>
 

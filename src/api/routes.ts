@@ -1,7 +1,7 @@
 import { Router, type Request, type Response } from "express";
 import { z } from "zod";
 import { prisma } from "../lib/db";
-import { computeDiff } from "../changes/detector";
+import { computeDiff, generalizeDiffLine } from "../changes/detector";
 import { runDiscoveryCycle } from "../discovery/engine";
 
 function parseId(raw: unknown): number | null {
@@ -296,6 +296,7 @@ router.get("/changes", async (req: Request, res: Response) => {
 
     const result = events.map((e) => ({
       id: e.id,
+      urlId: e.urlId,
       url: e.watchedUrl.url,
       source: e.watchedUrl.source,
       tags: JSON.parse(e.watchedUrl.tags),
@@ -337,13 +338,21 @@ router.get("/changes/:id/diff", async (req: Request, res: Response) => {
       return;
     }
 
+    const ignoreRules = await prisma.ignoreRule.findMany({
+      where: { urlId: event.urlId },
+      select: { pattern: true },
+    });
+    const ignorePatterns = ignoreRules.map((r) => r.pattern);
+
     const fullDiff = computeDiff(
       event.oldSnapshot.textContent ?? "",
-      event.newSnapshot.textContent ?? ""
+      event.newSnapshot.textContent ?? "",
+      ignorePatterns
     );
 
     res.json({
       id: event.id,
+      urlId: event.urlId,
       url: event.watchedUrl.url,
       tags: JSON.parse(event.watchedUrl.tags),
       changeScore: event.changeScore,
@@ -354,5 +363,111 @@ router.get("/changes/:id/diff", async (req: Request, res: Response) => {
     });
   } catch (err) {
     res.status(500).json({ error: "Failed to fetch diff", detail: String(err) });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// POST /ignore-rules/generate — generate a pattern from a diff line
+// ---------------------------------------------------------------------------
+const generatePatternSchema = z.object({
+  line: z.string().min(1),
+});
+
+router.post("/ignore-rules/generate", (req: Request, res: Response) => {
+  try {
+    const body = generatePatternSchema.parse(req.body);
+    const result = generalizeDiffLine(body.line);
+    res.json(result);
+  } catch (err) {
+    if (err instanceof z.ZodError) {
+      res.status(400).json({ error: "Validation failed", issues: err.issues });
+      return;
+    }
+    res.status(500).json({ error: "Failed to generate pattern", detail: String(err) });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// GET /watchlist/:id/ignore-rules — list ignore rules for a URL
+// ---------------------------------------------------------------------------
+router.get("/watchlist/:id/ignore-rules", async (req: Request, res: Response) => {
+  try {
+    const id = parseId(req.params.id);
+    if (id === null) {
+      res.status(400).json({ error: "Invalid ID" });
+      return;
+    }
+
+    const rules = await prisma.ignoreRule.findMany({
+      where: { urlId: id },
+      orderBy: { createdAt: "desc" },
+    });
+
+    res.json(rules);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch ignore rules", detail: String(err) });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// POST /watchlist/:id/ignore-rules — create an ignore rule for a URL
+// ---------------------------------------------------------------------------
+const createIgnoreRuleSchema = z.object({
+  pattern: z.string().min(1),
+  description: z.string().min(1),
+  sampleLine: z.string().optional(),
+});
+
+router.post("/watchlist/:id/ignore-rules", async (req: Request, res: Response) => {
+  try {
+    const id = parseId(req.params.id);
+    if (id === null) {
+      res.status(400).json({ error: "Invalid ID" });
+      return;
+    }
+
+    const body = createIgnoreRuleSchema.parse(req.body);
+
+    try {
+      new RegExp(body.pattern);
+    } catch {
+      res.status(400).json({ error: "Invalid regex pattern" });
+      return;
+    }
+
+    const rule = await prisma.ignoreRule.create({
+      data: {
+        urlId: id,
+        pattern: body.pattern,
+        description: body.description,
+        sampleLine: body.sampleLine,
+      },
+    });
+
+    res.status(201).json(rule);
+  } catch (err) {
+    if (err instanceof z.ZodError) {
+      res.status(400).json({ error: "Validation failed", issues: err.issues });
+      return;
+    }
+    res.status(500).json({ error: "Failed to create ignore rule", detail: String(err) });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// DELETE /ignore-rules/:id — delete an ignore rule
+// ---------------------------------------------------------------------------
+router.delete("/ignore-rules/:id", async (req: Request, res: Response) => {
+  try {
+    const id = parseId(req.params.id);
+    if (id === null) {
+      res.status(400).json({ error: "Invalid ID" });
+      return;
+    }
+
+    await prisma.ignoreRule.delete({ where: { id } });
+    res.status(204).send();
+  } catch (err) {
+    res.status(500).json({ error: "Failed to delete ignore rule", detail: String(err) });
   }
 });

@@ -136,7 +136,6 @@ function generateChangeSummary(c) {
   const added = parseInt((c.summary.match(/(\d+) added/) || [])[1]) || 0;
   const removed = parseInt((c.summary.match(/(\d+) removed/) || [])[1]) || 0;
 
-  // Determine the site context
   let site = "page";
   if (url.includes("hhaexchange")) site = "HHAeXchange portal";
   else if (url.includes("sandata")) site = "Sandata portal";
@@ -145,10 +144,10 @@ function generateChangeSummary(c) {
   else if (url.includes(".gov")) site = "state portal";
   else if (url.includes("medicaid")) site = "Medicaid page";
 
-  // Characterize the change type from diff content
   const keywords = {
     "deadline": "compliance deadline updates",
     "effective date": "effective date changes",
+    "effective": "effective date changes",
     "policy": "policy updates",
     "requirement": "requirement changes",
     "provider": "provider information updates",
@@ -162,14 +161,17 @@ function generateChangeSummary(c) {
     "rate": "rate or payment changes",
     "enrollment": "enrollment process updates",
     "certification": "certification updates",
+    "waiver": "waiver program changes",
+    "eligibility": "eligibility criteria updates",
+    "medicaid": "Medicaid reference updates",
   };
 
-  let changeType = null;
+  const detectedTypes = [];
   for (const [kw, desc] of Object.entries(keywords)) {
-    if (diff.includes(kw)) { changeType = desc; break; }
+    if (diff.includes(kw)) detectedTypes.push(desc);
   }
+  const uniqueTypes = [...new Set(detectedTypes)];
 
-  // Build the summary
   if (c.changeScore >= 30) {
     parts.push(`Major update to ${site}`);
   } else if (c.changeScore >= 10) {
@@ -178,8 +180,8 @@ function generateChangeSummary(c) {
     parts.push(`Minor update to ${site}`);
   }
 
-  if (changeType) {
-    parts[0] += ` — ${changeType}`;
+  if (uniqueTypes.length > 0) {
+    parts[0] += ` — ${uniqueTypes.slice(0, 2).join(", ")}`;
   }
 
   if (added > 0 && removed > 0) {
@@ -370,20 +372,33 @@ function renderChanges() {
         <div class="change-card-score" style="color:${scoreColor(c.changeScore)}">${c.changeScore}%</div>
       </div>
       <div class="change-card-meta">
-        <span>${c.summary}</span>
+        <span>${generateChangeSummary(c)}</span>
         <span>·</span>
         <span>${tagsHtml(c.tags)}</span>
         <span>·</span>
         <span title="${fmtDate(c.createdAt)}">${relTime(c.createdAt)}</span>
       </div>
-      <div class="change-card-preview">${formatDiffPreview(c.diffPreview)}</div>
+      <div class="change-card-preview">${formatDiffPreviewWithIgnore(c.diffPreview, c.urlId)}</div>
+      <div class="change-card-actions">
+        <button class="btn btn-sm btn-ignore-card" data-url-id="${c.urlId}" data-change-id="${c.id}" title="Ignore recurring changes from this diff">Ignore change in future</button>
+      </div>
     </div>`
     )
     .join("");
 
-  el.querySelectorAll(".change-card").forEach((card) =>
-    card.addEventListener("click", () => openDiff(card.dataset.changeId))
-  );
+  el.querySelectorAll(".change-card").forEach((card) => {
+    card.addEventListener("click", (e) => {
+      if (e.target.closest(".btn-ignore-card") || e.target.closest(".btn-ignore-line")) return;
+      openDiff(card.dataset.changeId);
+    });
+  });
+
+  el.querySelectorAll(".btn-ignore-card").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      openIgnoreModal(btn.dataset.urlId, btn.dataset.changeId);
+    });
+  });
 }
 
 function formatDiffPreview(preview) {
@@ -399,8 +414,138 @@ function formatDiffPreview(preview) {
     .join("\n");
 }
 
+function formatDiffPreviewWithIgnore(preview, urlId) {
+  if (!preview) return "<em>No preview available</em>";
+  return preview
+    .split("\n")
+    .map((line, idx) => {
+      const escaped = escapeHtml(line);
+      const isChanged = line.startsWith("+ ") || line.startsWith("- ");
+      const cls = line.startsWith("+ ") ? "diff-line-add" : line.startsWith("- ") ? "diff-line-rm" : "";
+      if (isChanged) {
+        return `<span class="${cls} diff-line-interactive" data-line="${escapeHtml(line)}" data-url-id="${urlId}">${escaped} <button class="btn-ignore-line" title="Ignore this type of change in future">ignore</button></span>`;
+      }
+      return escaped;
+    })
+    .join("\n");
+}
+
 function escapeHtml(str) {
-  return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
+// ---- Ignore Change Modal ----
+async function openIgnoreModal(urlId, changeId) {
+  const change = changesData.find((c) => String(c.id) === String(changeId));
+  if (!change || !change.diffPreview) {
+    toast("No diff lines available to create ignore rules", "error");
+    return;
+  }
+
+  const lines = change.diffPreview
+    .split("\n")
+    .filter((l) => l.startsWith("+ ") || l.startsWith("- "));
+
+  if (lines.length === 0) {
+    toast("No changed lines to ignore", "error");
+    return;
+  }
+
+  const patterns = await Promise.all(
+    lines.slice(0, 10).map(async (line) => {
+      try {
+        const result = await api("/ignore-rules/generate", {
+          method: "POST",
+          body: JSON.stringify({ line }),
+        });
+        return { line, ...result };
+      } catch {
+        return { line, pattern: null, description: line };
+      }
+    })
+  );
+
+  const validPatterns = patterns.filter((p) => p.pattern);
+
+  const modal = $("#ignoreModal");
+  const list = $("#ignorePatternList");
+
+  list.innerHTML = validPatterns
+    .map(
+      (p, i) => `<label class="ignore-pattern-item">
+      <input type="checkbox" value="${i}" checked>
+      <div class="ignore-pattern-info">
+        <span class="ignore-pattern-desc">${escapeHtml(p.description)}</span>
+        <code class="ignore-pattern-regex">${escapeHtml(p.pattern)}</code>
+        <span class="ignore-pattern-sample">${escapeHtml(p.line)}</span>
+      </div>
+    </label>`
+    )
+    .join("");
+
+  modal._urlId = urlId;
+  modal._patterns = validPatterns;
+  modal.hidden = false;
+}
+
+async function confirmIgnoreRules() {
+  const modal = $("#ignoreModal");
+  const checked = [...modal.querySelectorAll('input[type="checkbox"]:checked')];
+  const patterns = modal._patterns;
+  const urlId = modal._urlId;
+
+  let created = 0;
+  for (const cb of checked) {
+    const idx = parseInt(cb.value, 10);
+    const p = patterns[idx];
+    if (!p || !p.pattern) continue;
+
+    try {
+      await api(`/watchlist/${urlId}/ignore-rules`, {
+        method: "POST",
+        body: JSON.stringify({
+          pattern: p.pattern,
+          description: p.description,
+          sampleLine: p.line,
+        }),
+      });
+      created++;
+    } catch (err) {
+      toast(`Failed to create rule: ${err.message}`, "error");
+    }
+  }
+
+  modal.hidden = true;
+  if (created > 0) {
+    toast(`${created} ignore rule${created > 1 ? "s" : ""} created — these changes will no longer be reported`);
+  }
+}
+
+async function ignoreLineDirectly(line, urlId) {
+  try {
+    const result = await api("/ignore-rules/generate", {
+      method: "POST",
+      body: JSON.stringify({ line }),
+    });
+
+    if (!result.pattern) {
+      toast("Could not generate pattern for this line", "error");
+      return;
+    }
+
+    await api(`/watchlist/${urlId}/ignore-rules`, {
+      method: "POST",
+      body: JSON.stringify({
+        pattern: result.pattern,
+        description: result.description,
+        sampleLine: line,
+      }),
+    });
+
+    toast("Ignore rule created — this type of change will no longer be reported");
+  } catch (err) {
+    toast(`Failed: ${err.message}`, "error");
+  }
 }
 
 // ---- Diff Viewer ----
@@ -409,24 +554,111 @@ async function openDiff(changeId) {
   $("#diffContent").innerHTML = '<p class="empty-state">Loading diff...</p>';
   $("#diffMeta").innerHTML = "";
   $("#diffTitle").textContent = "Diff Viewer";
+  $("#diffIgnoreRules").innerHTML = "";
 
   try {
     const d = await api(`/changes/${changeId}/diff`);
     $("#diffTitle").textContent = `Diff — ${truncateUrl(d.url, 60)}`;
 
+    const sectionHtml = d.diff.sections && d.diff.sections.length > 0
+      ? `<div class="diff-sections"><strong>Sections affected:</strong> ${d.diff.sections.slice(0, 5).map((s) =>
+          `<span class="tag">${escapeHtml(s.label)} (+${s.linesAdded}/-${s.linesRemoved})</span>`
+        ).join(" ")}</div>`
+      : "";
+
     $("#diffMeta").innerHTML = `
-      <div><strong>URL:</strong> <a href="${d.url}" target="_blank" style="color:var(--accent)">${truncateUrl(d.url)}</a></div>
-      <div><strong>Score:</strong> <span style="color:${scoreColor(d.changeScore)}">${d.changeScore}%</span></div>
-      <div><strong>Summary:</strong> ${d.summary}</div>
-      <div><strong>Old snapshot:</strong> ${fmtDate(d.oldSnapshotDate)}</div>
-      <div><strong>New snapshot:</strong> ${fmtDate(d.newSnapshotDate)}</div>
-      <div>${tagsHtml(d.tags)}</div>
+      <div class="diff-meta-grid">
+        <div><strong>URL:</strong> <a href="${d.url}" target="_blank" style="color:var(--accent)">${truncateUrl(d.url)}</a></div>
+        <div><strong>Score:</strong> <span style="color:${scoreColor(d.changeScore)}">${d.changeScore}%</span></div>
+        <div><strong>Summary:</strong> ${escapeHtml(d.summary)}</div>
+        <div><strong>Old snapshot:</strong> ${fmtDate(d.oldSnapshotDate)}</div>
+        <div><strong>New snapshot:</strong> ${fmtDate(d.newSnapshotDate)}</div>
+        <div>${tagsHtml(d.tags)}</div>
+      </div>
+      ${sectionHtml}
     `;
 
     const diffLines = d.diff.diffPreview || "(no diff lines)";
-    $("#diffContent").innerHTML = formatDiffPreview(diffLines);
+    $("#diffContent").innerHTML = renderDiffWithIgnoreButtons(diffLines, d.urlId);
+
+    bindDiffIgnoreButtons(d.urlId);
+    loadIgnoreRulesPanel(d.urlId);
   } catch (err) {
     $("#diffContent").innerHTML = `<p class="empty-state">Error: ${err.message}</p>`;
+  }
+}
+
+function renderDiffWithIgnoreButtons(preview, urlId) {
+  if (!preview) return "(no diff lines)";
+  return preview
+    .split("\n")
+    .map((line) => {
+      const escaped = escapeHtml(line);
+      const isChanged = line.startsWith("+ ") || line.startsWith("- ");
+      const cls = line.startsWith("+ ") ? "diff-line-add" : line.startsWith("- ") ? "diff-line-rm" : "";
+      if (isChanged) {
+        return `<div class="diff-line ${cls}"><span class="diff-line-text">${escaped}</span><button class="btn btn-sm btn-ignore-diff" data-line="${escapeHtml(line)}" data-url-id="${urlId}" title="Ignore this type of change in future">ignore</button></div>`;
+      }
+      return `<div class="diff-line">${escaped}</div>`;
+    })
+    .join("");
+}
+
+function bindDiffIgnoreButtons(urlId) {
+  $$("#diffContent .btn-ignore-diff").forEach((btn) => {
+    btn.addEventListener("click", async (e) => {
+      e.stopPropagation();
+      const line = btn.dataset.line
+        .replace(/&amp;/g, "&")
+        .replace(/&lt;/g, "<")
+        .replace(/&gt;/g, ">")
+        .replace(/&quot;/g, '"');
+      btn.disabled = true;
+      btn.textContent = "...";
+      await ignoreLineDirectly(line, urlId);
+      btn.textContent = "ignored";
+      btn.classList.add("btn-ignored");
+    });
+  });
+}
+
+async function loadIgnoreRulesPanel(urlId) {
+  const container = $("#diffIgnoreRules");
+  try {
+    const rules = await api(`/watchlist/${urlId}/ignore-rules`);
+    if (rules.length === 0) {
+      container.innerHTML = "";
+      return;
+    }
+
+    container.innerHTML = `
+      <div class="panel ignore-rules-panel">
+        <h2>Active Ignore Rules (${rules.length})</h2>
+        <div class="ignore-rules-list">
+          ${rules.map((r) => `<div class="ignore-rule-item">
+            <div class="ignore-rule-desc">${escapeHtml(r.description)}</div>
+            <code class="ignore-rule-pattern">${escapeHtml(r.pattern)}</code>
+            <button class="btn btn-sm btn-danger btn-delete-rule" data-rule-id="${r.id}" title="Remove this ignore rule">Remove</button>
+          </div>`).join("")}
+        </div>
+      </div>
+    `;
+
+    container.querySelectorAll(".btn-delete-rule").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        btn.disabled = true;
+        try {
+          await api(`/ignore-rules/${btn.dataset.ruleId}`, { method: "DELETE" });
+          toast("Ignore rule removed");
+          loadIgnoreRulesPanel(urlId);
+        } catch (err) {
+          toast(`Failed: ${err.message}`, "error");
+          btn.disabled = false;
+        }
+      });
+    });
+  } catch {
+    container.innerHTML = "";
   }
 }
 
@@ -580,6 +812,27 @@ function init() {
     loadChanges(params);
   });
 
+  // Inline ignore buttons in changes feed
+  document.addEventListener("click", (e) => {
+    const btn = e.target.closest(".btn-ignore-line");
+    if (!btn) return;
+    e.stopPropagation();
+    const lineEl = btn.closest("[data-line]");
+    if (!lineEl) return;
+    const line = lineEl.dataset.line
+      .replace(/&amp;/g, "&")
+      .replace(/&lt;/g, "<")
+      .replace(/&gt;/g, ">")
+      .replace(/&quot;/g, '"');
+    const urlId = lineEl.dataset.urlId;
+    btn.disabled = true;
+    btn.textContent = "...";
+    ignoreLineDirectly(line, urlId).then(() => {
+      btn.textContent = "ignored";
+      btn.classList.add("ignored");
+    });
+  });
+
   // Modal
   $("#btnAddUrl").addEventListener("click", openModal);
   $("#modalClose").addEventListener("click", closeModal);
@@ -588,6 +841,15 @@ function init() {
     if (e.target === e.currentTarget) closeModal();
   });
   $("#addUrlForm").addEventListener("submit", handleAddUrl);
+
+  // Ignore modal
+  $("#ignoreModalClose").addEventListener("click", () => {
+    $("#ignoreModal").hidden = true;
+  });
+  $("#ignoreModalCancel").addEventListener("click", () => {
+    $("#ignoreModal").hidden = true;
+  });
+  $("#ignoreModalConfirm").addEventListener("click", confirmIgnoreRules);
 
   // Initial loads
   checkHealth();

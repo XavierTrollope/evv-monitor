@@ -612,3 +612,232 @@ tbody tr:hover { background: var(--bg-hover); }
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* ---- CHANGE CARD ACTIONS ---- */
+.change-card-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+
+.btn-ignore-card {
+  background: var(--bg-hover);
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  font-size: 11px;
+  padding: 3px 10px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: color .15s, border-color .15s;
+}
+
+.btn-ignore-card:hover {
+  color: var(--yellow);
+  border-color: rgba(251,191,36,.4);
+}
+
+/* ---- INLINE IGNORE BUTTONS ---- */
+.diff-line-interactive {
+  position: relative;
+  display: block;
+}
+
+.btn-ignore-line {
+  display: none;
+  background: var(--bg-hover);
+  color: var(--text-dim);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  font-size: 10px;
+  padding: 1px 6px;
+  cursor: pointer;
+  margin-left: 8px;
+  vertical-align: middle;
+  font-family: var(--font);
+  transition: color .15s, border-color .15s;
+}
+
+.diff-line-interactive:hover .btn-ignore-line {
+  display: inline-block;
+}
+
+.btn-ignore-line:hover {
+  color: var(--yellow);
+  border-color: rgba(251,191,36,.4);
+}
+
+.btn-ignore-line.ignored {
+  color: var(--green);
+  border-color: rgba(52,211,153,.3);
+  cursor: default;
+}
+
+/* ---- DIFF VIEWER IGNORE BUTTONS ---- */
+.diff-line {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 1px 0;
+}
+
+.diff-line-text {
+  flex: 1;
+  white-space: pre-wrap;
+}
+
+.btn-ignore-diff {
+  opacity: 0;
+  transition: opacity .15s;
+  flex-shrink: 0;
+  background: var(--bg-hover);
+  color: var(--text-dim);
+  border: 1px solid var(--border);
+  font-size: 10px;
+  padding: 1px 6px;
+}
+
+.diff-line:hover .btn-ignore-diff {
+  opacity: 1;
+}
+
+.btn-ignore-diff:hover {
+  color: var(--yellow);
+  border-color: rgba(251,191,36,.4);
+}
+
+.btn-ignored {
+  color: var(--green) !important;
+  border-color: rgba(52,211,153,.3) !important;
+  opacity: 1 !important;
+  cursor: default;
+}
+
+/* ---- IGNORE RULES PANEL ---- */
+.ignore-rules-panel {
+  margin-top: 20px;
+}
+
+.ignore-rules-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ignore-rule-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: var(--bg);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+}
+
+.ignore-rule-desc {
+  flex: 1;
+  font-size: 13px;
+  color: var(--text);
+}
+
+.ignore-rule-pattern {
+  font-size: 11px;
+  color: var(--text-dim);
+  background: var(--bg-surface);
+  padding: 2px 6px;
+  border-radius: 3px;
+  max-width: 300px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---- IGNORE MODAL PATTERNS LIST ---- */
+.ignore-pattern-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.ignore-pattern-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--bg);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: border-color .15s;
+}
+
+.ignore-pattern-item:hover {
+  border-color: var(--accent);
+}
+
+.ignore-pattern-item input[type="checkbox"] {
+  margin-top: 3px;
+  accent-color: var(--accent);
+}
+
+.ignore-pattern-info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1;
+  min-width: 0;
+}
+
+.ignore-pattern-desc {
+  font-size: 13px;
+  color: var(--text);
+  font-weight: 500;
+}
+
+.ignore-pattern-regex {
+  font-size: 11px;
+  color: var(--text-dim);
+  background: var(--bg-surface);
+  padding: 2px 6px;
+  border-radius: 3px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ignore-pattern-sample {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---- DIFF META GRID ---- */
+.diff-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 8px 20px;
+}
+
+.diff-sections {
+  margin-top: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.diff-sections strong {
+  color: var(--text);
+}
+
+.diff-sections .tag {
+  font-size: 11px;
+}

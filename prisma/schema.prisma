@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
@@ -21,6 +21,7 @@ model WatchedUrl {
 
   snapshots    Snapshot[]
   changeEvents ChangeEvent[]
+  ignoreRules  IgnoreRule[]
 
   @@map("watched_urls")
 }
@@ -58,6 +59,20 @@ model ChangeEvent {
 
   @@index([urlId, createdAt])
   @@map("change_events")
+}
+
+model IgnoreRule {
+  id          Int      @id @default(autoincrement())
+  urlId       Int
+  pattern     String   // regex pattern to match against diff lines
+  description String   // human-readable label for what this rule filters
+  sampleLine  String?  // the original diff line that spawned this rule
+  createdAt   DateTime @default(now())
+
+  watchedUrl WatchedUrl @relation(fields: [urlId], references: [id], onDelete: Cascade)
+
+  @@index([urlId])
+  @@map("ignore_rules")
 }
 
 model DiscoveryRun {
