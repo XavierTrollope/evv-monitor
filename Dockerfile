@@ -25,6 +25,7 @@ RUN npm ci
 COPY tsconfig.json ./
 COPY src/ ./src/
 COPY prisma/ ./prisma/
+ENV DATABASE_URL="postgresql://build:build@localhost:5432/build"
 RUN npx prisma generate
 RUN npm run build
 
