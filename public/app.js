@@ -468,6 +468,7 @@ async function openIgnoreModal(urlId, changeId) {
     .join("");
 
   modal._urlId = urlId;
+  modal._changeId = changeId;
   modal._patterns = validPatterns;
   modal.hidden = false;
 }
@@ -502,10 +503,11 @@ async function confirmIgnoreRules() {
   modal.hidden = true;
   if (created > 0) {
     toast(`${created} ignore rule${created > 1 ? "s" : ""} created — these changes will no longer be reported`);
+    removeChangeCard(modal._changeId);
   }
 }
 
-async function ignoreLineDirectly(line, urlId) {
+async function ignoreLineDirectly(line, urlId, changeId) {
   try {
     const result = await api("/ignore-rules/generate", {
       method: "POST",
@@ -527,8 +529,25 @@ async function ignoreLineDirectly(line, urlId) {
     });
 
     toast("Ignore rule created — this type of change will no longer be reported");
+    if (changeId) removeChangeCard(changeId);
   } catch (err) {
     toast(`Failed: ${err.message}`, "error");
+  }
+}
+
+function removeChangeCard(changeId) {
+  changesData = changesData.filter((c) => String(c.id) !== String(changeId));
+  const card = document.querySelector(`.change-card[data-change-id="${changeId}"]`);
+  if (card) {
+    card.style.transition = "opacity .3s, transform .3s";
+    card.style.opacity = "0";
+    card.style.transform = "translateX(30px)";
+    setTimeout(() => {
+      card.remove();
+      if (!changesData.length) {
+        $("#changesList").innerHTML = '<p class="empty-state">No change events remaining.</p>';
+      }
+    }, 300);
   }
 }
 
@@ -809,9 +828,11 @@ function init() {
       .replace(/&gt;/g, ">")
       .replace(/&quot;/g, '"');
     const urlId = lineEl.dataset.urlId;
+    const changeCard = btn.closest(".change-card");
+    const changeId = changeCard ? changeCard.dataset.changeId : null;
     btn.disabled = true;
     btn.textContent = "...";
-    ignoreLineDirectly(line, urlId).then(() => {
+    ignoreLineDirectly(line, urlId, changeId).then(() => {
       btn.textContent = "ignored";
       btn.classList.add("ignored");
     });
