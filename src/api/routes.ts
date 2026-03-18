@@ -1,7 +1,9 @@
 import { Router, type Request, type Response } from "express";
 import { z } from "zod";
 import { prisma } from "../lib/db";
-import { computeDiff, generalizeDiffLine } from "../changes/detector";
+import { computeDiff, generalizeDiffLine, loadRelevanceKeywords, invalidateRelevanceCache } from "../changes/detector";
+import * as fs from "fs";
+import * as path from "path";
 import { runDiscoveryCycle } from "../discovery/engine";
 
 function parseId(raw: unknown): number | null {
@@ -469,5 +471,55 @@ router.delete("/ignore-rules/:id", async (req: Request, res: Response) => {
     res.status(204).send();
   } catch (err) {
     res.status(500).json({ error: "Failed to delete ignore rule", detail: String(err) });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// GET /relevance-keywords — get the current relevance keyword configuration
+// ---------------------------------------------------------------------------
+const relevanceConfigPath = path.resolve(__dirname, "../../config/relevance-keywords.json");
+
+router.get("/relevance-keywords", (_req: Request, res: Response) => {
+  try {
+    const config = loadRelevanceKeywords();
+    res.json(config);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to load relevance keywords", detail: String(err) });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// PUT /relevance-keywords — replace the keyword list
+// ---------------------------------------------------------------------------
+const updateKeywordsSchema = z.object({
+  mode: z.enum(["require_match", "disabled"]).optional(),
+  keywords: z.array(z.string().min(1)).min(0),
+});
+
+router.put("/relevance-keywords", (req: Request, res: Response) => {
+  try {
+    const body = updateKeywordsSchema.parse(req.body);
+
+    let existing: Record<string, unknown> = {};
+    try {
+      existing = JSON.parse(fs.readFileSync(relevanceConfigPath, "utf-8"));
+    } catch { /* first write */ }
+
+    const updated = {
+      ...existing,
+      mode: body.mode ?? (existing.mode as string) ?? "require_match",
+      keywords: body.keywords,
+    };
+
+    fs.writeFileSync(relevanceConfigPath, JSON.stringify(updated, null, 2) + "\n", "utf-8");
+    invalidateRelevanceCache();
+
+    res.json({ mode: updated.mode, keywords: updated.keywords });
+  } catch (err) {
+    if (err instanceof z.ZodError) {
+      res.status(400).json({ error: "Validation failed", issues: err.issues });
+      return;
+    }
+    res.status(500).json({ error: "Failed to update relevance keywords", detail: String(err) });
   }
 });

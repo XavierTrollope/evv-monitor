@@ -7,6 +7,9 @@ const API = "/api";
 // ---- State ----
 let watchlistData = [];
 let changesData = [];
+let keywordsData = [];
+let keywordsMode = "require_match";
+let keywordsDirty = false;
 
 // ---- DOM helpers ----
 const $ = (sel) => document.querySelector(sel);
@@ -759,6 +762,81 @@ async function handleAddUrl(e) {
   }
 }
 
+// ---- Relevance Keywords ----
+async function loadKeywords() {
+  try {
+    const data = await api("/relevance-keywords");
+    keywordsData = data.keywords || [];
+    keywordsMode = data.mode || "require_match";
+    keywordsDirty = false;
+    renderKeywords();
+  } catch (err) {
+    $("#keywordsList").innerHTML = `<p class="empty-state">Failed to load keywords: ${err.message}</p>`;
+  }
+}
+
+function renderKeywords() {
+  const el = $("#keywordsList");
+  const modeEl = $("#keywordsMode");
+  const countEl = $("#keywordsCount");
+
+  if (modeEl) modeEl.value = keywordsMode;
+  if (countEl) countEl.textContent = `${keywordsData.length} keyword${keywordsData.length !== 1 ? "s" : ""}`;
+
+  if (!keywordsData.length) {
+    el.innerHTML = '<p class="empty-state">No keywords configured. All changes will be reported.</p>';
+    return;
+  }
+
+  const sorted = [...keywordsData].sort((a, b) => a.localeCompare(b));
+  el.innerHTML = sorted
+    .map(
+      (kw) => `<span class="keyword-tag" data-keyword="${escapeHtml(kw)}">${escapeHtml(kw)}<button class="keyword-remove" title="Remove">&times;</button></span>`
+    )
+    .join("");
+
+  el.querySelectorAll(".keyword-remove").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const tag = btn.closest(".keyword-tag");
+      const keyword = tag.dataset.keyword
+        .replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"');
+      keywordsData = keywordsData.filter((k) => k !== keyword);
+      keywordsDirty = true;
+      renderKeywords();
+    });
+  });
+}
+
+function addKeyword() {
+  const input = $("#keywordInput");
+  const value = input.value.trim().toLowerCase();
+  if (!value) return;
+  if (keywordsData.includes(value)) {
+    toast("Keyword already exists", "error");
+    return;
+  }
+  keywordsData.push(value);
+  keywordsDirty = true;
+  input.value = "";
+  renderKeywords();
+}
+
+async function saveKeywords() {
+  try {
+    const result = await api("/relevance-keywords", {
+      method: "PUT",
+      body: JSON.stringify({ mode: keywordsMode, keywords: keywordsData }),
+    });
+    keywordsData = result.keywords;
+    keywordsMode = result.mode;
+    keywordsDirty = false;
+    toast(`Saved ${keywordsData.length} keyword${keywordsData.length !== 1 ? "s" : ""}`);
+    renderKeywords();
+  } catch (err) {
+    toast(`Failed to save: ${err.message}`, "error");
+  }
+}
+
 // ---- Navigation ----
 function initNavigation() {
   $$(".nav-item[data-view]").forEach((link) => {
@@ -789,6 +867,9 @@ function onViewEnter(view) {
       break;
     case "discovery":
       loadDiscovery();
+      break;
+    case "keywords":
+      loadKeywords();
       break;
   }
 }
@@ -855,6 +936,17 @@ function init() {
     $("#ignoreModal").hidden = true;
   });
   $("#ignoreModalConfirm").addEventListener("click", confirmIgnoreRules);
+
+  // Keywords
+  $("#btnAddKeyword").addEventListener("click", addKeyword);
+  $("#keywordInput").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") { e.preventDefault(); addKeyword(); }
+  });
+  $("#btnSaveKeywords").addEventListener("click", saveKeywords);
+  $("#keywordsMode").addEventListener("change", (e) => {
+    keywordsMode = e.target.value;
+    keywordsDirty = true;
+  });
 
   // Initial loads
   checkHealth();

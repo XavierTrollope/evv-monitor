@@ -31,6 +31,10 @@
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
         Discovery Log
       </a>
+      <a href="#" class="nav-item" data-view="keywords">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+        Keywords
+      </a>
     </nav>
     <div class="sidebar-footer">
       <span class="health-dot" id="healthDot"></span>
@@ -148,6 +152,36 @@
       </div>
       <div id="discoveryTable" class="table-wrap">
         <p class="empty-state">Loading...</p>
+      </div>
+    </section>
+
+    <!-- ======================== KEYWORDS ======================== -->
+    <section id="view-keywords" class="view">
+      <div class="view-header">
+        <h1>Relevance Keywords</h1>
+        <p class="subtitle">Only changes matching at least one keyword will be reported. Manage your EVV-relevant terms below.</p>
+      </div>
+      <div class="panel keywords-panel">
+        <div class="keywords-controls">
+          <div class="keywords-mode">
+            <label>Filter mode:</label>
+            <select id="keywordsMode" class="input">
+              <option value="require_match">Require match (recommended)</option>
+              <option value="disabled">Disabled — report all changes</option>
+            </select>
+          </div>
+          <div class="keywords-add-row">
+            <input type="text" id="keywordInput" placeholder="Add a keyword or phrase..." class="input">
+            <button class="btn btn-primary" id="btnAddKeyword">Add</button>
+          </div>
+        </div>
+        <div id="keywordsList" class="keywords-list">
+          <p class="empty-state">Loading...</p>
+        </div>
+        <div class="keywords-footer">
+          <span id="keywordsCount" class="text-muted"></span>
+          <button class="btn btn-primary" id="btnSaveKeywords">Save Changes</button>
+        </div>
       </div>
     </section>
   </main>

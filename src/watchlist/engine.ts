@@ -4,7 +4,7 @@ import { prisma } from "../lib/db";
 import { logger } from "../lib/logger";
 import { env } from "../lib/config";
 import { fetchPage, type FetchResult } from "../lib/fetcher";
-import { computeDiff } from "../changes/detector";
+import { computeDiff, isRelevantChange } from "../changes/detector";
 import { notifyChange, notifyErrorPaused } from "../notifications/slack";
 
 const MAX_CONSECUTIVE_FAILURES = 5;
@@ -162,6 +162,14 @@ async function processUrl(
     logger.debug(
       { urlId: entry.id, score: diff.changeScore },
       "Change below threshold"
+    );
+    return "unchanged";
+  }
+
+  if (!isRelevantChange(diff.diffPreview)) {
+    logger.info(
+      { urlId: entry.id, score: diff.changeScore },
+      "Change filtered out — no relevance keyword match"
     );
     return "unchanged";
   }

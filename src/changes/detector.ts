@@ -291,3 +291,53 @@ function escapeRegex4Regex(rx: RegExp, source: string): RegExp {
 export function resetNoiseFilters(): void {
   compiledFilters = null;
 }
+
+interface RelevanceConfig {
+  mode: string;
+  keywords: string[];
+}
+
+let cachedRelevanceConfig: RelevanceConfig | null = null;
+let relevanceConfigMtime = 0;
+
+export function loadRelevanceKeywords(): RelevanceConfig {
+  const configPath = path.resolve(__dirname, "../../config/relevance-keywords.json");
+  try {
+    const stat = fs.statSync(configPath);
+    if (cachedRelevanceConfig && stat.mtimeMs === relevanceConfigMtime) {
+      return cachedRelevanceConfig;
+    }
+    const raw = fs.readFileSync(configPath, "utf-8");
+    const config = JSON.parse(raw);
+    cachedRelevanceConfig = {
+      mode: config.mode ?? "require_match",
+      keywords: (config.keywords ?? []).map((k: string) => k.toLowerCase()),
+    };
+    relevanceConfigMtime = stat.mtimeMs;
+    return cachedRelevanceConfig;
+  } catch {
+    return { mode: "require_match", keywords: [] };
+  }
+}
+
+export function invalidateRelevanceCache(): void {
+  cachedRelevanceConfig = null;
+  relevanceConfigMtime = 0;
+}
+
+export function isRelevantChange(diffPreview: string): boolean {
+  const config = loadRelevanceKeywords();
+  if (config.mode !== "require_match" || config.keywords.length === 0) {
+    return true;
+  }
+
+  const changedLines = diffPreview
+    .split("\n")
+    .filter((l) => l.startsWith("+ ") || l.startsWith("- "))
+    .map((l) => l.slice(2).toLowerCase());
+
+  if (changedLines.length === 0) return false;
+
+  const combined = changedLines.join(" ");
+  return config.keywords.some((kw) => combined.includes(kw));
+}
