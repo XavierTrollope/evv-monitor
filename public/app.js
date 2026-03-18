@@ -130,69 +130,53 @@ async function loadDashboard() {
 }
 
 function generateChangeSummary(c) {
-  const parts = [];
-  const url = c.url.toLowerCase();
-  const diff = (c.diffPreview || "").toLowerCase();
-  const added = parseInt((c.summary.match(/(\d+) added/) || [])[1]) || 0;
-  const removed = parseInt((c.summary.match(/(\d+) removed/) || [])[1]) || 0;
+  if (!c.diffPreview) return c.summary || "Change detected";
 
-  let site = "page";
-  if (url.includes("hhaexchange")) site = "HHAeXchange portal";
-  else if (url.includes("sandata")) site = "Sandata portal";
-  else if (url.includes("ntst") || url.includes("netsmart")) site = "Netsmart portal";
-  else if (url.includes("tellus")) site = "Tellus portal";
-  else if (url.includes(".gov")) site = "state portal";
-  else if (url.includes("medicaid")) site = "Medicaid page";
+  const lines = c.diffPreview.split("\n");
+  const added = lines
+    .filter((l) => l.startsWith("+ "))
+    .map((l) => l.slice(2).trim())
+    .filter((l) => l.length > 5);
+  const removed = lines
+    .filter((l) => l.startsWith("- "))
+    .map((l) => l.slice(2).trim())
+    .filter((l) => l.length > 5);
 
-  const keywords = {
-    "deadline": "compliance deadline updates",
-    "effective date": "effective date changes",
-    "effective": "effective date changes",
-    "policy": "policy updates",
-    "requirement": "requirement changes",
-    "provider": "provider information updates",
-    "billing": "billing or claims updates",
-    "training": "training material updates",
-    "schedule": "schedule or timeline changes",
-    "contact": "contact information changes",
-    "form": "form or document updates",
-    "evv": "EVV process changes",
-    "compliance": "compliance guidance updates",
-    "rate": "rate or payment changes",
-    "enrollment": "enrollment process updates",
-    "certification": "certification updates",
-    "waiver": "waiver program changes",
-    "eligibility": "eligibility criteria updates",
-    "medicaid": "Medicaid reference updates",
-  };
+  const snippets = [];
 
-  const detectedTypes = [];
-  for (const [kw, desc] of Object.entries(keywords)) {
-    if (diff.includes(kw)) detectedTypes.push(desc);
-  }
-  const uniqueTypes = [...new Set(detectedTypes)];
-
-  if (c.changeScore >= 30) {
-    parts.push(`Major update to ${site}`);
-  } else if (c.changeScore >= 10) {
-    parts.push(`Moderate update to ${site}`);
-  } else {
-    parts.push(`Minor update to ${site}`);
+  if (removed.length > 0 && added.length > 0) {
+    snippets.push(
+      `<span class="diff-inline-rm">${escapeHtml(truncate(removed[0], 90))}</span>` +
+      ` → <span class="diff-inline-add">${escapeHtml(truncate(added[0], 90))}</span>`
+    );
+    for (const line of added.slice(1, 3)) {
+      snippets.push(`<span class="diff-inline-add">+ ${escapeHtml(truncate(line, 100))}</span>`);
+    }
+  } else if (added.length > 0) {
+    for (const line of added.slice(0, 3)) {
+      snippets.push(`<span class="diff-inline-add">+ ${escapeHtml(truncate(line, 100))}</span>`);
+    }
+  } else if (removed.length > 0) {
+    for (const line of removed.slice(0, 3)) {
+      snippets.push(`<span class="diff-inline-rm">− ${escapeHtml(truncate(line, 100))}</span>`);
+    }
   }
 
-  if (uniqueTypes.length > 0) {
-    parts[0] += ` — ${uniqueTypes.slice(0, 2).join(", ")}`;
-  }
+  const addCount = added.length;
+  const rmCount = removed.length;
+  let countLabel = "";
+  if (addCount > 0 && rmCount > 0) countLabel = `${addCount} added, ${rmCount} removed`;
+  else if (addCount > 0) countLabel = `${addCount} line${addCount > 1 ? "s" : ""} added`;
+  else if (rmCount > 0) countLabel = `${rmCount} line${rmCount > 1 ? "s" : ""} removed`;
 
-  if (added > 0 && removed > 0) {
-    parts.push(`Content revised (${added} lines added, ${removed} removed)`);
-  } else if (added > 0) {
-    parts.push(`New content added (${added} lines)`);
-  } else if (removed > 0) {
-    parts.push(`Content removed (${removed} lines)`);
-  }
+  return (
+    snippets.join("<br>") +
+    (countLabel ? `<span class="change-count">${countLabel}</span>` : "")
+  );
+}
 
-  return parts.join(". ") + ".";
+function truncate(str, max) {
+  return str.length > max ? str.slice(0, max - 1) + "…" : str;
 }
 
 function renderDashRecentChanges(changes) {
