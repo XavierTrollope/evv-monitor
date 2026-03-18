@@ -50,7 +50,7 @@ export async function runWatchlistCycle(): Promise<void> {
 async function autoReactivateUrls(): Promise<number> {
   const stalled = await prisma.watchedUrl.findMany({
     where: {
-      status: "error_paused",
+      status: { in: ["error_paused", "pending_review"] },
     },
   });
 
@@ -96,10 +96,10 @@ async function processUrl(
 ): Promise<"changed" | "unchanged" | "first_snapshot"> {
   const isPdf = entry.url.toLowerCase().endsWith(".pdf");
   if (isPdf) {
-    logger.info({ url: entry.url }, "PDF URL flagged as manual_review — skipping fetch");
+    logger.info({ url: entry.url }, "PDF URL — skipping fetch");
     await prisma.watchedUrl.update({
       where: { id: entry.id },
-      data: { status: "pending_review", lastCheckedAt: new Date() },
+      data: { lastCheckedAt: new Date() },
     });
     return "unchanged";
   }
