@@ -50,7 +50,7 @@ export async function runWatchlistCycle(): Promise<void> {
 async function autoReactivateUrls(): Promise<number> {
   const stalled = await prisma.watchedUrl.findMany({
     where: {
-      status: { in: ["pending_review", "error_paused", "paused"] },
+      status: "error_paused",
     },
   });
 
@@ -69,8 +69,8 @@ async function autoReactivateUrls(): Promise<number> {
     });
 
     logger.info(
-      { urlId: entry.id, url: entry.url, previousStatus: entry.status },
-      "Auto-reactivated URL"
+      { urlId: entry.id, url: entry.url },
+      "Auto-reactivated error_paused URL"
     );
   }
 

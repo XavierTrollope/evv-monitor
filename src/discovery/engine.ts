@@ -126,7 +126,7 @@ async function processDiscoveredUrl(
     data: {
       url: result.link,
       source: "discovered",
-      status: isPdf ? "pending_review" : "pending_review",
+      status: isPdf ? "pending_review" : "active",
       intervalMinutes: env.DEFAULT_POLL_INTERVAL_MIN,
       tags: JSON.stringify({
         url_type: isPdf ? "pdf" : guessUrlType(result),
