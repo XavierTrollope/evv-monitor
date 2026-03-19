@@ -95,10 +95,14 @@ const AGG_ALIASES = {
   "tellus": "netsmart", "netsmart tellus": "netsmart",
   "carebridge health": "carebridge",
   "therap": "therap", "authenticare": "authenticare",
-  "emedny": "emedny", "exprs": "exprs", "tmhp": "tmhp", "ahcccs": "sandata",
+  "emedny": "emedny", "exprs": "exprs", "xprs": "exprs",
+  "tmhp": "tmhp", "ahcccs": "sandata",
+  "lasrs": "lasrs", "sri": "lasrs",
+  "provider one": "providerone", "providerone": "providerone",
+  "utevv": "utevv",
 };
 
-const STATUS_RANK = { "Complete": 4, "In Progress": 3, "Draft": 2, "No customers": 1, "Not Started": 0 };
+const STATUS_RANK = { "In Production": 4, "In Development": 3, "Sponsored": 2, "Closed": 1 };
 
 function normalizeAgg(name) {
   const lower = (name || "").toLowerCase().trim();
@@ -131,12 +135,11 @@ function devStatusBadge(tags) {
   const status = getDevStatus(tags);
   if (!status) return '<span style="color:var(--text-dim)">—</span>';
   const cls = {
-    "Complete": "dev-complete",
-    "In Progress": "dev-progress",
-    "Draft": "dev-draft",
-    "No customers": "dev-nocust",
-    "Not Started": "dev-notstarted",
-  }[status] || "dev-notstarted";
+    "In Production": "dev-production",
+    "In Development": "dev-development",
+    "Sponsored": "dev-sponsored",
+    "Closed": "dev-closed",
+  }[status] || "dev-sponsored";
   return `<span class="dev-badge ${cls}">${status}</span>`;
 }
 
