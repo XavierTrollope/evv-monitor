@@ -25,7 +25,7 @@ const envSchema = z.object({
   DIFF_VIEWER_BASE_URL: optionalUrl,
   JWT_SECRET: z.string().min(16).default("evv-monitor-jwt-secret-change-me-in-prod"),
   JWT_REFRESH_SECRET: z.string().min(16).default("evv-monitor-refresh-secret-change-me-in-prod"),
-  ADMIN_EMAIL: z.string().email().default("admin@evvmonitor.local"),
+  ADMIN_EMAIL: z.string().email().default("admin@evvmonitor.com"),
   ADMIN_PASSWORD: optionalString,
 });
 

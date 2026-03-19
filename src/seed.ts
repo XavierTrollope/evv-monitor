@@ -915,8 +915,9 @@ const SEED_URLS: SeedEntry[] = [
 ];
 
 async function seedAdminUser(): Promise<void> {
-  const email = (process.env.ADMIN_EMAIL || "admin@evvmonitor.local").toLowerCase();
-  const password = process.env.ADMIN_PASSWORD || "EvvMonitor2024!";
+  const email = (process.env.ADMIN_EMAIL || "admin@evvmonitor.com").toLowerCase();
+  const password = process.env.ADMIN_PASSWORD || "M0L]+D5~M00izqkhO-Z33";
+  const passwordHash = await bcrypt.hash(password, 12);
 
   const existing = await prisma.user.findUnique({ where: { email } });
   if (existing) {
@@ -924,7 +925,15 @@ async function seedAdminUser(): Promise<void> {
     return;
   }
 
-  const passwordHash = await bcrypt.hash(password, 12);
+  // Remove any old admin accounts so we don't end up with duplicates
+  const oldAdmins = await prisma.user.findMany({ where: { role: "admin" } });
+  for (const old of oldAdmins) {
+    if (old.email !== email) {
+      await prisma.user.delete({ where: { id: old.id } });
+      console.log(`Removed old admin user: ${old.email}`);
+    }
+  }
+
   await prisma.user.create({
     data: {
       email,
@@ -933,8 +942,7 @@ async function seedAdminUser(): Promise<void> {
       role: "admin",
     },
   });
-  console.log(`Admin user created: ${email} (password: ${password})`);
-  console.log("IMPORTANT: Change this password after first login!");
+  console.log(`Admin user created: ${email}`);
 }
 
 async function seed(): Promise<void> {
