@@ -148,14 +148,59 @@ function truncateUrl(url, max = 60) {
 }
 
 async function api(path, opts = {}) {
-  const resp = await fetch(`${API}${path}`, {
+  let resp = await fetch(`${API}${path}`, {
     headers: { "Content-Type": "application/json" },
     ...opts,
   });
+
+  if (resp.status === 401 && !path.startsWith("/auth/")) {
+    const refreshResp = await fetch("/api/auth/refresh", { method: "POST" });
+    if (refreshResp.ok) {
+      resp = await fetch(`${API}${path}`, {
+        headers: { "Content-Type": "application/json" },
+        ...opts,
+      });
+    } else {
+      window.location.href = "/login.html";
+      throw new Error("Session expired");
+    }
+  }
+
   if (opts.method === "DELETE" && resp.status === 204) return null;
   const data = await resp.json();
   if (!resp.ok) throw new Error(data.error || `HTTP ${resp.status}`);
   return data;
+}
+
+async function checkAuth() {
+  try {
+    const resp = await fetch("/api/auth/me");
+    if (resp.ok) {
+      const data = await resp.json();
+      const userEl = $("#currentUserEmail");
+      if (userEl && data.user) userEl.textContent = data.user.email;
+      return true;
+    }
+    const refreshResp = await fetch("/api/auth/refresh", { method: "POST" });
+    if (refreshResp.ok) {
+      const data = await refreshResp.json();
+      const userEl = $("#currentUserEmail");
+      if (userEl && data.user) userEl.textContent = data.user.email;
+      return true;
+    }
+    window.location.href = "/login.html";
+    return false;
+  } catch {
+    window.location.href = "/login.html";
+    return false;
+  }
+}
+
+async function logout() {
+  try {
+    await fetch("/api/auth/logout", { method: "POST" });
+  } catch {}
+  window.location.href = "/login.html";
 }
 
 // ---- Health check ----
@@ -937,7 +982,10 @@ function onViewEnter(view) {
 }
 
 // ---- Init ----
-function init() {
+async function init() {
+  const authed = await checkAuth();
+  if (!authed) return;
+
   initNavigation();
 
   // Filters
@@ -1009,6 +1057,9 @@ function init() {
     keywordsMode = e.target.value;
     keywordsDirty = true;
   });
+
+  // Logout
+  $("#btnLogout").addEventListener("click", logout);
 
   // Initial loads
   checkHealth();

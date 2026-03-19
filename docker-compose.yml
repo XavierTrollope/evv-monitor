@@ -35,6 +35,10 @@ services:
       PLAYWRIGHT_TIMEOUT_MS: ${PLAYWRIGHT_TIMEOUT_MS:-15000}
       PORT: "3000"
       DIFF_VIEWER_BASE_URL: ${DIFF_VIEWER_BASE_URL:-}
+      JWT_SECRET: ${JWT_SECRET:-evv-monitor-jwt-secret-change-me-in-prod}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-evv-monitor-refresh-secret-change-me-in-prod}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@evvmonitor.local}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-EvvMonitor2024!}
 
 volumes:
   pgdata:

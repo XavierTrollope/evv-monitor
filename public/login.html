@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EVV Monitor — Sign In</title>
+  <style>
+    :root {
+      --bg:           #0f1117;
+      --bg-surface:   #1a1d27;
+      --bg-card:      #222533;
+      --bg-hover:     #2a2e3d;
+      --border:       #2e3348;
+      --text:         #e1e4ed;
+      --text-muted:   #8b90a5;
+      --text-dim:     #5c6178;
+      --accent:       #6c8cff;
+      --accent-hover: #8aa4ff;
+      --accent-glow:  rgba(108, 140, 255, .18);
+      --green:        #34d399;
+      --red:          #f87171;
+      --red-bg:       rgba(248,113,113,.12);
+      --radius:       8px;
+      --radius-lg:    12px;
+      --font:         'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      height: 100%;
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    body {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      background-image:
+        radial-gradient(ellipse at 20% 50%, rgba(108, 140, 255, .06) 0%, transparent 60%),
+        radial-gradient(ellipse at 80% 20%, rgba(167, 139, 250, .05) 0%, transparent 50%);
+    }
+
+    .login-container {
+      width: 100%;
+      max-width: 420px;
+    }
+
+    .login-brand {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+
+    .login-brand-icon {
+      width: 56px;
+      height: 56px;
+      margin: 0 auto 14px;
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      box-shadow: 0 0 24px var(--accent-glow);
+    }
+
+    .login-brand-icon img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .login-brand h1 {
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: -.02em;
+      margin-bottom: 4px;
+    }
+
+    .login-brand p {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .login-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 32px 28px;
+      box-shadow: 0 4px 32px rgba(0,0,0,.3);
+    }
+
+    .login-card h2 {
+      font-size: 17px;
+      font-weight: 600;
+      margin-bottom: 24px;
+      text-align: center;
+    }
+
+    .form-group {
+      margin-bottom: 18px;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: .04em;
+      margin-bottom: 6px;
+    }
+
+    .form-input {
+      width: 100%;
+      padding: 11px 14px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--text);
+      font-family: var(--font);
+      font-size: 14px;
+      outline: none;
+      transition: border-color .2s, box-shadow .2s;
+    }
+
+    .form-input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+
+    .form-input::placeholder {
+      color: var(--text-dim);
+    }
+
+    .form-input.error {
+      border-color: var(--red);
+      box-shadow: 0 0 0 3px rgba(248, 113, 113, .12);
+    }
+
+    .password-wrapper {
+      position: relative;
+    }
+
+    .password-wrapper .form-input {
+      padding-right: 44px;
+    }
+
+    .toggle-password {
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      color: var(--text-dim);
+      cursor: pointer;
+      padding: 4px;
+      line-height: 0;
+      transition: color .15s;
+    }
+
+    .toggle-password:hover {
+      color: var(--text-muted);
+    }
+
+    .form-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 24px;
+    }
+
+    .checkbox-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      font-size: 13px;
+      color: var(--text-muted);
+      user-select: none;
+    }
+
+    .checkbox-label input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      accent-color: var(--accent);
+      cursor: pointer;
+    }
+
+    .forgot-link {
+      font-size: 13px;
+      color: var(--accent);
+      text-decoration: none;
+      font-weight: 500;
+      transition: color .15s;
+    }
+
+    .forgot-link:hover {
+      color: var(--accent-hover);
+    }
+
+    .btn-login {
+      width: 100%;
+      padding: 12px;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius);
+      font-family: var(--font);
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background .2s, transform .1s;
+      letter-spacing: .01em;
+    }
+
+    .btn-login:hover:not(:disabled) {
+      background: var(--accent-hover);
+    }
+
+    .btn-login:active:not(:disabled) {
+      transform: scale(.98);
+    }
+
+    .btn-login:disabled {
+      opacity: .6;
+      cursor: not-allowed;
+    }
+
+    .btn-login.loading {
+      position: relative;
+      color: transparent;
+    }
+
+    .btn-login.loading::after {
+      content: "";
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 18px;
+      height: 18px;
+      margin: -9px 0 0 -9px;
+      border: 2px solid rgba(255,255,255,.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin .6s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .alert {
+      padding: 10px 14px;
+      border-radius: var(--radius);
+      font-size: 13px;
+      margin-bottom: 18px;
+      display: none;
+    }
+
+    .alert.show { display: block; }
+
+    .alert-error {
+      background: var(--red-bg);
+      color: var(--red);
+      border: 1px solid rgba(248,113,113,.25);
+    }
+
+    .alert-success {
+      background: rgba(52, 211, 153, .12);
+      color: var(--green);
+      border: 1px solid rgba(52, 211, 153, .25);
+    }
+
+    .back-to-login {
+      display: none;
+      text-align: center;
+      margin-top: 16px;
+    }
+
+    .back-to-login a {
+      color: var(--accent);
+      font-size: 13px;
+      font-weight: 500;
+      text-decoration: none;
+    }
+
+    .back-to-login a:hover {
+      color: var(--accent-hover);
+    }
+
+    .password-strength {
+      height: 3px;
+      background: var(--border);
+      border-radius: 2px;
+      margin-top: 8px;
+      overflow: hidden;
+      display: none;
+    }
+
+    .password-strength .bar {
+      height: 100%;
+      border-radius: 2px;
+      transition: width .3s, background .3s;
+      width: 0;
+    }
+
+    .password-hint {
+      font-size: 11px;
+      color: var(--text-dim);
+      margin-top: 4px;
+      display: none;
+    }
+
+    .login-footer {
+      text-align: center;
+      margin-top: 20px;
+      font-size: 12px;
+      color: var(--text-dim);
+    }
+
+    @media (max-width: 480px) {
+      .login-card {
+        padding: 24px 20px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="login-container">
+    <div class="login-brand">
+      <div class="login-brand-icon">
+        <img src="/logo.png" alt="EVV Monitor" onerror="this.parentElement.innerHTML='<svg width=56 height=56 viewBox=&quot;0 0 56 56&quot;><rect width=56 height=56 rx=12 fill=&quot;%236c8cff&quot;/><text x=28 y=34 text-anchor=&quot;middle&quot; fill=&quot;white&quot; font-size=20 font-weight=700>EVV</text></svg>'">
+      </div>
+      <h1>EVV Monitor</h1>
+      <p>Regulatory change tracking dashboard</p>
+    </div>
+
+    <div class="login-card">
+      <h2 id="formTitle">Sign In</h2>
+
+      <div class="alert alert-error" id="alertError"></div>
+      <div class="alert alert-success" id="alertSuccess"></div>
+
+      <!-- LOGIN FORM -->
+      <form id="loginForm">
+        <div class="form-group">
+          <label for="email">Email Address</label>
+          <input type="email" id="email" class="form-input" placeholder="admin@evvmonitor.local" autocomplete="email" required>
+        </div>
+        <div class="form-group">
+          <label for="password">Password</label>
+          <div class="password-wrapper">
+            <input type="password" id="password" class="form-input" placeholder="Enter your password" autocomplete="current-password" required>
+            <button type="button" class="toggle-password" aria-label="Toggle password visibility">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+          </div>
+        </div>
+        <div class="form-row">
+          <label class="checkbox-label">
+            <input type="checkbox" id="rememberMe">
+            Remember me for 30 days
+          </label>
+          <a href="#" class="forgot-link" id="showForgot">Forgot password?</a>
+        </div>
+        <button type="submit" class="btn-login" id="btnLogin">Sign In</button>
+      </form>
+
+      <!-- FORGOT PASSWORD FORM -->
+      <form id="forgotForm" style="display:none">
+        <div class="form-group">
+          <label for="forgotEmail">Email Address</label>
+          <input type="email" id="forgotEmail" class="form-input" placeholder="Enter your email" autocomplete="email" required>
+        </div>
+        <button type="submit" class="btn-login" id="btnForgot">Send Reset Link</button>
+      </form>
+
+      <!-- RESET PASSWORD FORM -->
+      <form id="resetForm" style="display:none">
+        <div class="form-group">
+          <label for="newPassword">New Password</label>
+          <div class="password-wrapper">
+            <input type="password" id="newPassword" class="form-input" placeholder="Minimum 8 characters" autocomplete="new-password" required minlength="8">
+            <button type="button" class="toggle-password" aria-label="Toggle password visibility">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+          </div>
+          <div class="password-strength" id="pwStrength"><div class="bar"></div></div>
+          <div class="password-hint" id="pwHint"></div>
+        </div>
+        <div class="form-group">
+          <label for="confirmPassword">Confirm Password</label>
+          <div class="password-wrapper">
+            <input type="password" id="confirmPassword" class="form-input" placeholder="Repeat new password" autocomplete="new-password" required minlength="8">
+            <button type="button" class="toggle-password" aria-label="Toggle password visibility">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+          </div>
+        </div>
+        <button type="submit" class="btn-login" id="btnReset">Reset Password</button>
+      </form>
+
+      <div class="back-to-login" id="backToLogin">
+        <a href="#">&larr; Back to Sign In</a>
+      </div>
+    </div>
+
+    <div class="login-footer">
+      Secured with JWT &amp; bcrypt
+    </div>
+  </div>
+
+  <script>
+    const $ = (sel) => document.querySelector(sel);
+    const alertError = $("#alertError");
+    const alertSuccess = $("#alertSuccess");
+
+    function showAlert(el, msg) {
+      el.textContent = msg;
+      el.classList.add("show");
+      setTimeout(() => el.classList.remove("show"), 6000);
+    }
+
+    function hideAlerts() {
+      alertError.classList.remove("show");
+      alertSuccess.classList.remove("show");
+    }
+
+    function showForm(formId) {
+      hideAlerts();
+      ["loginForm", "forgotForm", "resetForm"].forEach((id) => {
+        $("#" + id).style.display = id === formId ? "block" : "none";
+      });
+      const titles = { loginForm: "Sign In", forgotForm: "Reset Password", resetForm: "Set New Password" };
+      $("#formTitle").textContent = titles[formId] || "Sign In";
+      $("#backToLogin").style.display = formId === "loginForm" ? "none" : "block";
+    }
+
+    // Check for reset token in URL
+    const params = new URLSearchParams(window.location.search);
+    const resetToken = params.get("token");
+    if (resetToken) {
+      showForm("resetForm");
+    }
+
+    // Toggle password visibility
+    document.querySelectorAll(".toggle-password").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const input = btn.previousElementSibling;
+        const isPassword = input.type === "password";
+        input.type = isPassword ? "text" : "password";
+        btn.innerHTML = isPassword
+          ? '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>'
+          : '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
+      });
+    });
+
+    // Password strength indicator
+    const newPwInput = $("#newPassword");
+    if (newPwInput) {
+      newPwInput.addEventListener("input", () => {
+        const pw = newPwInput.value;
+        const strength = $("#pwStrength");
+        const hint = $("#pwHint");
+        const bar = strength.querySelector(".bar");
+
+        if (pw.length === 0) {
+          strength.style.display = "none";
+          hint.style.display = "none";
+          return;
+        }
+
+        strength.style.display = "block";
+        hint.style.display = "block";
+
+        let score = 0;
+        if (pw.length >= 8) score++;
+        if (pw.length >= 12) score++;
+        if (/[A-Z]/.test(pw) && /[a-z]/.test(pw)) score++;
+        if (/\d/.test(pw)) score++;
+        if (/[^A-Za-z0-9]/.test(pw)) score++;
+
+        const levels = [
+          { width: "20%", color: "#f87171", label: "Very weak" },
+          { width: "40%", color: "#fb923c", label: "Weak" },
+          { width: "60%", color: "#fbbf24", label: "Fair" },
+          { width: "80%", color: "#34d399", label: "Strong" },
+          { width: "100%", color: "#22c55e", label: "Very strong" },
+        ];
+
+        const level = levels[Math.min(score, levels.length) - 1] || levels[0];
+        bar.style.width = level.width;
+        bar.style.background = level.color;
+        hint.textContent = level.label;
+        hint.style.color = level.color;
+      });
+    }
+
+    // Show forgot form
+    $("#showForgot").addEventListener("click", (e) => {
+      e.preventDefault();
+      showForm("forgotForm");
+    });
+
+    // Back to login
+    $("#backToLogin").addEventListener("click", (e) => {
+      e.preventDefault();
+      showForm("loginForm");
+    });
+
+    // Login form
+    $("#loginForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      hideAlerts();
+
+      const btn = $("#btnLogin");
+      btn.classList.add("loading");
+      btn.disabled = true;
+
+      try {
+        const resp = await fetch("/api/auth/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email: $("#email").value.trim(),
+            password: $("#password").value,
+            rememberMe: $("#rememberMe").checked,
+          }),
+        });
+
+        const data = await resp.json();
+
+        if (!resp.ok) {
+          showAlert(alertError, data.error || "Login failed");
+          return;
+        }
+
+        window.location.href = "/";
+      } catch (err) {
+        showAlert(alertError, "Network error — please try again");
+      } finally {
+        btn.classList.remove("loading");
+        btn.disabled = false;
+      }
+    });
+
+    // Forgot password form
+    $("#forgotForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      hideAlerts();
+
+      const btn = $("#btnForgot");
+      btn.classList.add("loading");
+      btn.disabled = true;
+
+      try {
+        const resp = await fetch("/api/auth/forgot-password", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: $("#forgotEmail").value.trim() }),
+        });
+
+        const data = await resp.json();
+
+        if (data.resetUrl) {
+          showAlert(alertSuccess, "Reset link generated! Check the server logs or use the link provided.");
+          navigator.clipboard?.writeText(data.resetUrl).catch(() => {});
+        } else {
+          showAlert(alertSuccess, data.message || "If that email exists, a reset link has been generated.");
+        }
+      } catch (err) {
+        showAlert(alertError, "Network error — please try again");
+      } finally {
+        btn.classList.remove("loading");
+        btn.disabled = false;
+      }
+    });
+
+    // Reset password form
+    $("#resetForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      hideAlerts();
+
+      const newPw = $("#newPassword").value;
+      const confirmPw = $("#confirmPassword").value;
+
+      if (newPw !== confirmPw) {
+        showAlert(alertError, "Passwords do not match");
+        return;
+      }
+
+      if (newPw.length < 8) {
+        showAlert(alertError, "Password must be at least 8 characters");
+        return;
+      }
+
+      const btn = $("#btnReset");
+      btn.classList.add("loading");
+      btn.disabled = true;
+
+      try {
+        const resp = await fetch("/api/auth/reset-password", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ token: resetToken, newPassword: newPw }),
+        });
+
+        const data = await resp.json();
+
+        if (!resp.ok) {
+          showAlert(alertError, data.error || "Reset failed");
+          return;
+        }
+
+        showAlert(alertSuccess, "Password reset successfully! Redirecting to login...");
+        setTimeout(() => {
+          window.location.href = "/login.html";
+        }, 2000);
+      } catch (err) {
+        showAlert(alertError, "Network error — please try again");
+      } finally {
+        btn.classList.remove("loading");
+        btn.disabled = false;
+      }
+    });
+
+    // If already authenticated, redirect to dashboard
+    (async () => {
+      try {
+        const resp = await fetch("/api/auth/me");
+        if (resp.ok) {
+          window.location.href = "/";
+        }
+      } catch {}
+    })();
+  </script>
+</body>
+</html>

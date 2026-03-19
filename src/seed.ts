@@ -1,4 +1,5 @@
 import { PrismaClient } from "@prisma/client";
+import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
 
@@ -913,7 +914,31 @@ const SEED_URLS: SeedEntry[] = [
   },
 ];
 
+async function seedAdminUser(): Promise<void> {
+  const email = (process.env.ADMIN_EMAIL || "admin@evvmonitor.local").toLowerCase();
+  const password = process.env.ADMIN_PASSWORD || "EvvMonitor2024!";
+
+  const existing = await prisma.user.findUnique({ where: { email } });
+  if (existing) {
+    console.log(`Admin user already exists: ${email}`);
+    return;
+  }
+
+  const passwordHash = await bcrypt.hash(password, 12);
+  await prisma.user.create({
+    data: {
+      email,
+      passwordHash,
+      displayName: "Admin",
+      role: "admin",
+    },
+  });
+  console.log(`Admin user created: ${email} (password: ${password})`);
+  console.log("IMPORTANT: Change this password after first login!");
+}
+
 async function seed(): Promise<void> {
+  await seedAdminUser();
   console.log("Seeding watchlist...");
 
   let created = 0;

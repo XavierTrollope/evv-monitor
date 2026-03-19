@@ -23,6 +23,10 @@ const envSchema = z.object({
   PLAYWRIGHT_TIMEOUT_MS: z.coerce.number().int().positive().default(15000),
   PORT: z.coerce.number().int().positive().default(3000),
   DIFF_VIEWER_BASE_URL: optionalUrl,
+  JWT_SECRET: z.string().min(16).default("evv-monitor-jwt-secret-change-me-in-prod"),
+  JWT_REFRESH_SECRET: z.string().min(16).default("evv-monitor-refresh-secret-change-me-in-prod"),
+  ADMIN_EMAIL: z.string().email().default("admin@evvmonitor.local"),
+  ADMIN_PASSWORD: optionalString,
 });
 
 export const env = envSchema.parse(process.env);

@@ -1,11 +1,14 @@
 import express from "express";
 import path from "path";
+import cookieParser from "cookie-parser";
 import { CronJob } from "cron";
 import { env } from "./lib/config";
 import { logger } from "./lib/logger";
 import { ensureDbConnection } from "./lib/db";
 import { closeBrowser } from "./lib/fetcher";
 import { router } from "./api/routes";
+import { authRouter } from "./auth/routes";
+import { requireAuth } from "./auth/middleware";
 import { runDiscoveryCycle } from "./discovery/engine";
 import { runWatchlistCycle } from "./watchlist/engine";
 
@@ -16,15 +19,26 @@ async function main(): Promise<void> {
   // ---- Express API ----
   const app = express();
   app.use(express.json());
+  app.use(cookieParser());
 
   // Serve dashboard UI
   const publicDir = path.resolve(__dirname, "../public");
   app.use(express.static(publicDir));
 
-  app.use("/api", router);
+  // Auth routes (unauthenticated)
+  app.use("/api/auth", authRouter);
 
+  // Health check (unauthenticated)
   app.get("/api/health", (_req, res) => {
     res.json({ status: "ok", uptime: process.uptime() });
+  });
+
+  // Protected API routes
+  app.use("/api", requireAuth, router);
+
+  // Password reset page
+  app.get("/reset-password", (_req, res) => {
+    res.sendFile(path.join(publicDir, "login.html"));
   });
 
   // SPA fallback — serve index.html for any non-API route

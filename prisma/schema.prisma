@@ -7,6 +7,21 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model User {
+  id             Int       @id @default(autoincrement())
+  email          String    @unique
+  passwordHash   String
+  displayName    String    @default("")
+  role           String    @default("admin") // admin | viewer
+  refreshToken   String?
+  resetToken     String?   @unique
+  resetTokenExp  DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@map("users")
+}
+
 model WatchedUrl {
   id               Int       @id @default(autoincrement())
   url              String    @unique
