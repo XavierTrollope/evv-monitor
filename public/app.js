@@ -90,17 +90,41 @@ async function loadStateStatus() {
   } catch { stateStatusData = []; }
 }
 
+const AGG_ALIASES = {
+  "hhax": "hhaexchange", "hha exchange": "hhaexchange", "hha": "hhaexchange",
+  "tellus": "netsmart", "netsmart tellus": "netsmart",
+  "carebridge health": "carebridge",
+  "therap": "therap", "authenticare": "authenticare",
+  "emedny": "emedny", "exprs": "exprs", "tmhp": "tmhp", "ahcccs": "sandata",
+};
+
+const STATUS_RANK = { "Complete": 4, "In Progress": 3, "Draft": 2, "No customers": 1, "Not Started": 0 };
+
+function normalizeAgg(name) {
+  const lower = (name || "").toLowerCase().trim();
+  return AGG_ALIASES[lower] || lower;
+}
+
 function getDevStatus(tags) {
   if (!tags || !tags.state) return "";
   const state = tags.state.toUpperCase();
-  const agg = (tags.aggregator_name || "").toLowerCase();
-  let match = stateStatusData.find(
-    (s) => s.state === state && agg && s.aggregator === agg
-  );
-  if (!match) {
-    match = stateStatusData.find((s) => s.state === state);
+  const agg = normalizeAgg(tags.aggregator_name);
+
+  if (agg) {
+    const exact = stateStatusData.find(
+      (s) => s.state === state && s.aggregator === agg
+    );
+    if (exact) return exact.status;
   }
-  return match ? match.status : "";
+
+  const stateEntries = stateStatusData.filter((s) => s.state === state);
+  if (stateEntries.length === 0) return "";
+
+  const stateLevel = stateEntries.find((s) => s.stateStatus);
+  if (stateLevel) return stateLevel.stateStatus;
+
+  stateEntries.sort((a, b) => (STATUS_RANK[b.status] || 0) - (STATUS_RANK[a.status] || 0));
+  return stateEntries[0].status;
 }
 
 function devStatusBadge(tags) {
