@@ -10,6 +10,7 @@ let changesData = [];
 let keywordsData = [];
 let keywordsMode = "require_match";
 let keywordsDirty = false;
+let stateStatusData = [];
 
 // ---- DOM helpers ----
 const $ = (sel) => document.querySelector(sel);
@@ -81,6 +82,38 @@ function scoreColor(score) {
   if (score >= 30) return "var(--red)";
   if (score >= 10) return "var(--yellow)";
   return "var(--green)";
+}
+
+async function loadStateStatus() {
+  try {
+    stateStatusData = await api("/state-status");
+  } catch { stateStatusData = []; }
+}
+
+function getDevStatus(tags) {
+  if (!tags || !tags.state) return "";
+  const state = tags.state.toUpperCase();
+  const agg = (tags.aggregator_name || "").toLowerCase();
+  let match = stateStatusData.find(
+    (s) => s.state === state && agg && s.aggregator === agg
+  );
+  if (!match) {
+    match = stateStatusData.find((s) => s.state === state);
+  }
+  return match ? match.status : "";
+}
+
+function devStatusBadge(tags) {
+  const status = getDevStatus(tags);
+  if (!status) return '<span style="color:var(--text-dim)">—</span>';
+  const cls = {
+    "Complete": "dev-complete",
+    "In Progress": "dev-progress",
+    "Draft": "dev-draft",
+    "No customers": "dev-nocust",
+    "Not Started": "dev-notstarted",
+  }[status] || "dev-notstarted";
+  return `<span class="dev-badge ${cls}">${status}</span>`;
 }
 
 function truncateUrl(url, max = 60) {
@@ -190,13 +223,14 @@ function renderDashRecentChanges(changes) {
   }
   el.innerHTML = `<table>
     <thead><tr>
-      <th>URL</th><th>State</th><th>Score</th><th>Change Summary</th><th>When</th>
+      <th>URL</th><th>State</th><th>Dev Status</th><th>Score</th><th>Change Summary</th><th>When</th>
     </tr></thead>
     <tbody>${changes
       .map(
         (c) => `<tr class="clickable-row" data-change-id="${c.id}">
         <td class="url-cell"><a href="${c.url}" target="_blank" title="${c.url}">${truncateUrl(c.url)}</a></td>
         <td>${stateLabel(c.tags)}</td>
+        <td>${devStatusBadge(c.tags)}</td>
         <td><strong style="color:${scoreColor(c.changeScore)}">${c.changeScore}%</strong></td>
         <td class="change-summary-cell">${generateChangeSummary(c)}</td>
         <td title="${fmtDate(c.createdAt)}">${relTime(c.createdAt)}</td>
@@ -258,13 +292,14 @@ function renderWatchlist() {
 
   el.innerHTML = `<table>
     <thead><tr>
-      <th>URL</th><th>State</th><th>Status</th><th>Source</th><th>Tags</th><th>Interval</th><th>Last Checked</th><th>Actions</th>
+      <th>URL</th><th>State</th><th>Dev Status</th><th>Status</th><th>Source</th><th>Tags</th><th>Interval</th><th>Last Checked</th><th>Actions</th>
     </tr></thead>
     <tbody>${filtered
       .map(
         (u) => `<tr data-id="${u.id}">
         <td class="url-cell"><a href="${u.url}" target="_blank" title="${u.url}">${truncateUrl(u.url, 50)}</a></td>
         <td>${stateLabel(u.tags)}</td>
+        <td>${devStatusBadge(u.tags)}</td>
         <td><span class="badge badge-${u.status}">${u.status.replace("_", " ")}</span></td>
         <td><span class="badge badge-${u.source}">${u.source}</span></td>
         <td>${tagsHtml(u.tags)}</td>
@@ -950,8 +985,10 @@ function init() {
 
   // Initial loads
   checkHealth();
-  loadDashboard();
-  loadWatchlist();
+  loadStateStatus().then(() => {
+    loadDashboard();
+    loadWatchlist();
+  });
 
   // Periodic health check
   setInterval(checkHealth, 30000);

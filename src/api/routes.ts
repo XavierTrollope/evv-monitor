@@ -523,3 +523,18 @@ router.put("/relevance-keywords", (req: Request, res: Response) => {
     res.status(500).json({ error: "Failed to update relevance keywords", detail: String(err) });
   }
 });
+
+// ---------------------------------------------------------------------------
+// GET /state-status — get development status for state+aggregator combos
+// ---------------------------------------------------------------------------
+const stateStatusConfigPath = path.resolve(__dirname, "../../config/state-aggregator-status.json");
+
+router.get("/state-status", (_req: Request, res: Response) => {
+  try {
+    const raw = fs.readFileSync(stateStatusConfigPath, "utf-8");
+    const config = JSON.parse(raw);
+    res.json(config.statuses ?? []);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to load state status data", detail: String(err) });
+  }
+});
